@@ -1,4 +1,4 @@
-rtsync
+RTSync
 ======
 
-Lightweight time synchronization algorithm for wireless sensors
+Lightweight time synchronization algorithm for wireless sensors.
