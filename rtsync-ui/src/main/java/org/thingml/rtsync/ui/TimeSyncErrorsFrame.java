@@ -27,26 +27,22 @@ import org.thingml.rtsync.core.*;
  *
  * @author ffl
  */
-public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchronizerLogger {
+public class TimeSyncErrorsFrame extends javax.swing.JFrame implements ITimeSynchronizerLogger {
 
+    protected GraphBuffer btimeout = new GraphBuffer(100);
+    protected GraphBuffer bwrongseq = new GraphBuffer(100);
+    protected GraphBuffer bdtsdrop = new GraphBuffer(100);
+    protected GraphBuffer berrdrop = new GraphBuffer(100);
     
-    protected GraphBuffer bping = new GraphBuffer(100);
-    protected GraphBuffer bdtt = new GraphBuffer(100);
-    protected GraphBuffer bdtr = new GraphBuffer(100);
-    protected GraphBuffer bdts = new GraphBuffer(100);
+   
     protected TimeSynchronizer ts = null;
-    
-    private int pingrate = 250;
-    
-    
     
     /**
      * Creates new form TimeSynchronizerFrame
      */
-    public TimeSyncPingFrame(TimeSynchronizer ts) {
+    public TimeSyncErrorsFrame(TimeSynchronizer ts) {
         initComponents();
         this.ts = ts;
-        pingrate = ts.getPingRate();
         ts.addLogger(this);
         ((GraphPanel)jPanel2).start();
         ((GraphPanel)jPanel3).start();
@@ -64,10 +60,10 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
-        jPanel2 = new BarGraphPanel(bping, "Roundtrip ping time (ms)", 0, 500, 100, Color.red);
-        jPanel3 = new BarGraphPanel(bdtt, "dT between pings on Master (ms)", 0, 500, 100, Color.red);
-        jPanel4 = new BarGraphPanel(bdts, "dT between pongs on Slave (ms)", -50, 50, 25, Color.red);
-        jPanel5 = new BarGraphPanel(bdtr, "dT between pongs on Master (ms)", -100, 100, 25, Color.red);
+        jPanel2 = new BarGraphPanel(btimeout, "Timeout waiting for Pong", 0, 1, 1, Color.red);
+        jPanel3 = new BarGraphPanel(bwrongseq, "Received wrong pong", 0, 1, 1, Color.red);
+        jPanel4 = new BarGraphPanel(bdtsdrop, "Packets droped by Dts Filter", 0, 500, 150, Color.red);
+        jPanel5 = new BarGraphPanel(berrdrop, "Packets droped by Error filter", -100, 100, 50, Color.red);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -117,37 +113,45 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
 
     @Override
     public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped) {
-        int ping = (int)(tmr - tmt);
+        /*
+        int del = (int) delay;
         int err = (int) (offs - regOffsMs);
-
+        bxyerr.appendDataRow(new int[] {del, err});
+        berr.insertData(err);
+        bdelay.insertData(del);
+        bdrop.insertData(0);
+        */
+        berrdrop.insertData(0);
+        bdtsdrop.insertData(0);
+        bwrongseq.insertData(0);
     }
 
     @Override
     public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
-        bping.insertData(delay);
-        bdtt.insertData(dtt);
-        bdts.insertData(dts-dtt);
-        bdtr.insertData(dtr-dts);
+        btimeout.insertData(0);
     }
-    
+
     @Override
     public void timeSyncReady() {
     }
 
     @Override
     public void timeSyncWrongSequence(int pingSeqNum, int pongSeqNum) {
+        bwrongseq.insertData(1);
     }
 
     @Override
     public void timeSyncDtsFilter(int dts) {
+        bdtsdrop.insertData(dts);
     }
-    
-        @Override
+
+    @Override
     public void timeSyncErrorFilter(int error) {
+        berrdrop.insertData(error);
     }
 
     @Override
     public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
-        
+        btimeout.insertData(1);
     }
 }

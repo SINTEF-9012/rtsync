@@ -206,15 +206,34 @@ public class TimeSynchronizer implements Runnable {
         }
     }
 
+    private boolean got_pong = false;
+    private Object pongMonitor = "Thread synchronization monitor";
+    
     private void send_ping() {
-        pingSeqNum++;
         
+        synchronized(pongMonitor) {
+            try {
+                if (!got_pong) pongMonitor.wait(pingRate*3); // Give some time for the pong to arrive
+            } catch (InterruptedException ex) {
+                Logger.getLogger(TimeSynchronizer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            if (!got_pong) { // Timeout, the pong is declared lost
+                for (ITimeSynchronizerLogger l : loggers) l.timeSyncPingTimeout(pingSeqNum, tmt);
+            }
+            
+        got_pong = false;
+        // Send the next ping
+        pingSeqNum++;
         if (pingSeqNum > pingSeqMax) { 
             pingSeqNum = 0;
         }
         
         tmt = System.currentTimeMillis();
         device.sendTimeRequest(pingSeqNum);
+        }
+        
+        
     }
 
     public long getRegOffset() {
@@ -229,114 +248,117 @@ public class TimeSynchronizer implements Runnable {
     private static int READY = 1;
     private int state = INIT;
 
-    public void receive_TimeResponse(int timeSyncSeqNum, long value) {
+    public synchronized void receive_TimeResponse(int timeSyncSeqNum, long value) {
 
+        
         //--------------------------------------
         // 1) Validate the ping sequence number
         //--------------------------------------
-        if (timeSyncSeqNum > pingSeqMax) {
-            timeSyncSeqNum = 0;  // Range check of sequence number. Should never occur
-            for (ITimeSynchronizerLogger l : loggers) l.timeSyncWrongSequence(pingSeqNum, timeSyncSeqNum);
-            return;
-        }
-        if (tmt == 0 || timeSyncSeqNum != pingSeqNum) {// The the ping sequence number is not correct
-            System.out.println("Skip - Rep seqNum = " + timeSyncSeqNum + " Req seqNum = " + pingSeqNum);
-            for (ITimeSynchronizerLogger l : loggers) l.timeSyncWrongSequence(pingSeqNum, timeSyncSeqNum);
-            return;
-        }
-        
-        //----------------------------------------------
-        // 1b) Management of the slave clock wrap around 
-        //----------------------------------------------
-        
-        if (ts_phase == UNKNOWN_WRAP) {
-            ts_offset = 0; // initialize
-            if (value > (ts_maxvalue - ts_phase_frame)) ts_phase = BEFORE_WRAP;
-            else if (value < ts_phase_frame) ts_phase = UNKNOWN_WRAP; // wait until we are out of the AFTER_WRAP zone to avoid negative ts
-            else ts_phase = NO_WRAP;
-        }
-        else if (ts_phase == NO_WRAP && value > (ts_maxvalue - ts_phase_frame)) {
-            ts_phase = BEFORE_WRAP;
-        }
-        else if (ts_phase == BEFORE_WRAP && value < ts_phase_frame) {
-            ts_offset += ts_maxvalue + 1; // increment the offset
-            ts_phase = AFTER_WRAP;
-        }
-        else if (ts_phase == AFTER_WRAP && value > ts_phase_frame) {
-            ts_phase = NO_WRAP;
-        }
-    
-        long ts = ts_offset + value;  // Slave timestamp which does not wrap around.
-        
-        //---------------------------------------------
-        // 2) Collect all timing data (TMT, TMR and TS)
-        //---------------------------------------------
-        long tmr = System.currentTimeMillis();
-        
-        int dTmr = (int) (tmr - tmrPrev); // time between the 2 last Pongs
-        int dTmt = (int) (tmt - tmtPrev); // Time between the 2 last Pings
-        int dTs = (int) (ts - tsPrev); // Time between last ts - Used by TsFilter
-
-        for (ITimeSynchronizerLogger l : loggers) l.timeSyncPong((int) (tmr - tmt), (int) dTmt, (int) dTmr, (int) dTs);
-
-        tmrPrev = tmr;
-        tmtPrev = tmt;
-        tsPrev = ts;
-
-        //---------------------------------------------------------
-        // 3) Filter abnormal delays - dTs too different from dTmr
-        //---------------------------------------------------------
-        if (dTs < dTmt - dTsDeltaMax || dTs > dTmt + dTsDeltaMax) {
-            System.out.println("Skip by dTs Filter - dTS = " + dTs);
-            for (ITimeSynchronizerLogger l : loggers) l.timeSyncDtsFilter(dTs);
-            return;
-        }
-
-        //---------------------------------------------------------
-        // 4) Init the Zero offset in initialization phase
-        //---------------------------------------------------------
-
-        int delay = (int)(tmr - tmt) / 2; // round trip delay
-        long offset = -ts + tmt + delay; // instant offset between PC and sensor clocks
-
-        if (state == INIT) {
-            zeroOffset += offset;
-            if (zeroOffsetAvgCount == 1) {
-                // Got correct number of samples....calculate average
-                zeroOffset /= zeroOffsetAvgSize;
-                regOffset = zeroOffset; // Initialize regOffset to "zero"
-                System.out.println("TimeSync=>zeroOffset calculated");
-                state = READY;
-                for (ITimeSynchronizerLogger l : loggers) l.timeSyncReady();
+        synchronized(pongMonitor) {
+            if (timeSyncSeqNum > pingSeqMax) {
+                timeSyncSeqNum = 0;  // Range check of sequence number. Should never occur
+                for (ITimeSynchronizerLogger l : loggers) l.timeSyncWrongSequence(pingSeqNum, timeSyncSeqNum);
+                return;
             }
-            zeroOffsetAvgCount--;
-            return;
-        }
+            if (tmt == 0 || timeSyncSeqNum != pingSeqNum) {// The the ping sequence number is not correct
+                for (ITimeSynchronizerLogger l : loggers) l.timeSyncWrongSequence(pingSeqNum, timeSyncSeqNum);
+                return;
+            }
+            got_pong = true;
+            pongMonitor.notify();
+            //----------------------------------------------
+            // 1b) Management of the slave clock wrap around 
+            //----------------------------------------------
 
-        //---------------------------------------------------------
-        // 5) Running the regulator
-        //---------------------------------------------------------
-        
-        long error = offset - regOffset;
-        
-        if (state == READY) {
-            if (error > tsErrorMax) {
-                System.out.println("Limit - error(+) = " + error);
-                for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
+            if (ts_phase == UNKNOWN_WRAP) {
+                ts_offset = 0; // initialize
+                if (value > (ts_maxvalue - ts_phase_frame)) ts_phase = BEFORE_WRAP;
+                else if (value < ts_phase_frame) ts_phase = UNKNOWN_WRAP; // wait until we are out of the AFTER_WRAP zone to avoid negative ts
+                else ts_phase = NO_WRAP;
             }
-            else if (error < -tsErrorMax) {
-                System.out.println("Limit - error(-) = " + error);
-                for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
+            else if (ts_phase == NO_WRAP && value > (ts_maxvalue - ts_phase_frame)) {
+                ts_phase = BEFORE_WRAP;
             }
-            else {
-                // Running integrator
-                errorSum += error;
-                regOffset = zeroOffset + (errorSum / kInt);
+            else if (ts_phase == BEFORE_WRAP && value < ts_phase_frame) {
+                ts_offset += ts_maxvalue + 1; // increment the offset
+                ts_phase = AFTER_WRAP;
             }
-        }
+            else if (ts_phase == AFTER_WRAP && value > ts_phase_frame) {
+                ts_phase = NO_WRAP;
+            }
 
-        for (ITimeSynchronizerLogger l : loggers) {
-            l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, errorSum, zeroOffset, regOffset, ts_phase);
+            long ts = ts_offset + value;  // Slave timestamp which does not wrap around.
+
+            //---------------------------------------------
+            // 2) Collect all timing data (TMT, TMR and TS)
+            //---------------------------------------------
+            long tmr = System.currentTimeMillis();
+
+            int dTmr = (int) (tmr - tmrPrev); // time between the 2 last Pongs
+            int dTmt = (int) (tmt - tmtPrev); // Time between the 2 last Pings
+            int dTs = (int) (ts - tsPrev); // Time between last ts - Used by TsFilter
+
+            for (ITimeSynchronizerLogger l : loggers) l.timeSyncPong((int) (tmr - tmt), (int) dTmt, (int) dTmr, (int) dTs);
+
+            tmrPrev = tmr;
+            tmtPrev = tmt;
+            tsPrev = ts;
+
+            //---------------------------------------------------------
+            // 3) Filter abnormal delays - dTs too different from dTmr
+            //---------------------------------------------------------
+            if (dTs < dTmt - dTsDeltaMax || dTs > dTmt + dTsDeltaMax) {
+                System.out.println("Skip by dTs Filter - dTS = " + dTs);
+                for (ITimeSynchronizerLogger l : loggers) l.timeSyncDtsFilter(dTs);
+                return;
+            }
+
+            //---------------------------------------------------------
+            // 4) Init the Zero offset in initialization phase
+            //---------------------------------------------------------
+
+            int delay = (int)(tmr - tmt) / 2; // round trip delay
+            long offset = -ts + tmt + delay; // instant offset between PC and sensor clocks
+
+            if (state == INIT) {
+                zeroOffset += offset;
+                if (zeroOffsetAvgCount == 1) {
+                    // Got correct number of samples....calculate average
+                    zeroOffset /= zeroOffsetAvgSize;
+                    regOffset = zeroOffset; // Initialize regOffset to "zero"
+                    System.out.println("TimeSync=>zeroOffset calculated");
+                    state = READY;
+                    for (ITimeSynchronizerLogger l : loggers) l.timeSyncReady();
+                }
+                zeroOffsetAvgCount--;
+                return;
+            }
+
+            //---------------------------------------------------------
+            // 5) Running the regulator
+            //---------------------------------------------------------
+
+            long error = offset - regOffset;
+
+            if (state == READY) {
+                if (error > tsErrorMax) {
+                    System.out.println("Limit - error(+) = " + error);
+                    for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
+                }
+                else if (error < -tsErrorMax) {
+                    System.out.println("Limit - error(-) = " + error);
+                    for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
+                }
+                else {
+                    // Running integrator
+                    errorSum += error;
+                    regOffset = zeroOffset + (errorSum / kInt);
+                }
+            }
+
+            for (ITimeSynchronizerLogger l : loggers) {
+                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, errorSum, zeroOffset, regOffset, ts_phase);
+            }
         }
 
     }

@@ -27,28 +27,26 @@ import org.thingml.rtsync.core.*;
  *
  * @author ffl
  */
-public class TimeSyncErrorFrame extends javax.swing.JFrame implements ITimeSynchronizerLogger {
+public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITimeSynchronizerLogger {
 
     protected DataBuffer bxyerr = new DataBuffer(2, 100);
     
     protected GraphBuffer berr = new GraphBuffer(100);
     protected GraphBuffer bdelay = new GraphBuffer(100);
     
-    protected GraphBuffer bdrop = new GraphBuffer(100);
    
     protected TimeSynchronizer ts = null;
     
     /**
      * Creates new form TimeSynchronizerFrame
      */
-    public TimeSyncErrorFrame(TimeSynchronizer ts) {
+    public TimeSyncDelayErrorFrame(TimeSynchronizer ts) {
         initComponents();
         this.ts = ts;
         ts.addLogger(this);
         ((XYGraphPanel)jPanel2).start();
         ((GraphPanel)jPanel3).start();
         ((GraphPanel)jPanel4).start();
-        ((GraphPanel)jPanel5).start();
     }
 
     /**
@@ -65,7 +63,6 @@ public class TimeSyncErrorFrame extends javax.swing.JFrame implements ITimeSynch
         jPanel6 = new javax.swing.JPanel();
         jPanel3 = new BarGraphPanel(bdelay, "Calculated delay (ms)", 0, 200, 50, Color.red);
         jPanel4 = new BarGraphPanel(berr, "Error", -40, 40, 20, Color.red);
-        jPanel5 = new BarGraphPanel(bdrop, "Packets droped by Dts Filter", 0, 500, 150, Color.red);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -80,7 +77,6 @@ public class TimeSyncErrorFrame extends javax.swing.JFrame implements ITimeSynch
         jPanel6.setLayout(new javax.swing.BoxLayout(jPanel6, javax.swing.BoxLayout.PAGE_AXIS));
         jPanel6.add(jPanel3);
         jPanel6.add(jPanel4);
-        jPanel6.add(jPanel5);
 
         jPanel1.add(jPanel6);
 
@@ -96,7 +92,6 @@ public class TimeSyncErrorFrame extends javax.swing.JFrame implements ITimeSynch
           ((XYGraphPanel)jPanel2).stop();
           ((GraphPanel)jPanel3).stop();
           ((GraphPanel)jPanel4).stop();
-          ((GraphPanel)jPanel5).stop();
     }//GEN-LAST:event_formWindowClosed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -104,7 +99,6 @@ public class TimeSyncErrorFrame extends javax.swing.JFrame implements ITimeSynch
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
-    private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
     // End of variables declaration//GEN-END:variables
 
@@ -125,7 +119,7 @@ public class TimeSyncErrorFrame extends javax.swing.JFrame implements ITimeSynch
         bxyerr.appendDataRow(new int[] {del, err});
         berr.insertData(err);
         bdelay.insertData(del);
-        bdrop.insertData(0);
+//        bdrop.insertData(0);
     }
 
     @Override
@@ -143,10 +137,15 @@ public class TimeSyncErrorFrame extends javax.swing.JFrame implements ITimeSynch
 
     @Override
     public void timeSyncDtsFilter(int dts) {
-        bdrop.insertData(dts);
+      //  bdrop.insertData(dts);
     }
 
     @Override
     public void timeSyncErrorFilter(int error) {
+    }
+
+    @Override
+    public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
+        
     }
 }

@@ -40,23 +40,32 @@ public class TimeSynchronizerPrintLogger implements ITimeSynchronizerLogger {
 
     @Override
     public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
-        
+        System.out.println("TimeSync: PONG delay=" + delay + SEPARATOR + dtt + SEPARATOR + dtr + SEPARATOR + dts);
     }
     
     @Override
     public void timeSyncReady() {
+        System.out.println("TimeSync: READY!");
     }
 
     @Override
     public void timeSyncWrongSequence(int pingSeqNum, int pongSeqNum) {
+        System.out.println("TimeSync: Got an unexpected pong (after another ping was sent) - seqNum = " + pongSeqNum);
     }
 
     @Override
     public void timeSyncDtsFilter(int dts) {
+        System.out.println("TimeSync: Drop by Dts filter - dts = " + dts);
     }
     
      @Override
     public void timeSyncErrorFilter(int error) {
+         System.out.println("TimeSync: Drop by Error filter - calculated error out of bounds: " + error);
+    }
+
+    @Override
+    public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
+        System.out.println("TimeSync: Timout for ping " + pingSeqNum + " after " + (System.currentTimeMillis() - tmt) + "ms.");
     }
     
 }

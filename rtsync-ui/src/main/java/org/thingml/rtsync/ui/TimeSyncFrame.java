@@ -142,6 +142,7 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
         jPanel4 = new javax.swing.JPanel();
         jButtonPingCharts = new javax.swing.JButton();
         jButtonErrorCharts = new javax.swing.JButton();
+        jButton1 = new javax.swing.JButton();
         jPanel2 = new javax.swing.JPanel();
         jLabel9 = new javax.swing.JLabel();
         jTextFieldLogDir = new javax.swing.JTextField();
@@ -178,38 +179,47 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
 
         jLabel8.setText("ts_phase_frame:");
 
-        jButtonPingCharts.setText("Ping charts...");
+        jButtonPingCharts.setText("Ping...");
         jButtonPingCharts.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonPingChartsActionPerformed(evt);
             }
         });
 
-        jButtonErrorCharts.setText("Error charts...");
+        jButtonErrorCharts.setText("Delay/Error...");
         jButtonErrorCharts.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonErrorChartsActionPerformed(evt);
             }
         });
 
+        jButton1.setText("Errors...");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
             .addGroup(jPanel4Layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jButtonErrorCharts, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButtonPingCharts, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
+                .addContainerGap()
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButtonPingCharts, javax.swing.GroupLayout.PREFERRED_SIZE, 106, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButtonErrorCharts)
+                    .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 106, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
                 .addComponent(jButtonPingCharts)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jButtonErrorCharts)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton1)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -403,8 +413,8 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 98, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 85, Short.MAX_VALUE)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 69, Short.MAX_VALUE)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
@@ -460,7 +470,7 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
     }//GEN-LAST:event_jButtonPingChartsActionPerformed
 
     private void jButtonErrorChartsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonErrorChartsActionPerformed
-        TimeSyncErrorFrame errframe = new TimeSyncErrorFrame(ts);
+        TimeSyncDelayErrorFrame errframe = new TimeSyncDelayErrorFrame(ts);
         errframe.setSize(400, 600);
         errframe.setVisible(true);
     }//GEN-LAST:event_jButtonErrorChartsActionPerformed
@@ -494,7 +504,14 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
         }
     }//GEN-LAST:event_jButtonEndLogActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        TimeSyncErrorsFrame errframe = new TimeSyncErrorsFrame(ts);
+        errframe.setSize(400, 500);
+        errframe.setVisible(true);
+    }//GEN-LAST:event_jButton1ActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
     private javax.swing.JButton jButtonBrowse;
     private javax.swing.JButton jButtonEndLog;
     private javax.swing.JButton jButtonErrorCharts;
@@ -566,6 +583,11 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
 
     @Override
     public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped) {
+        
+    }
+
+    @Override
+    public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
         
     }
 }

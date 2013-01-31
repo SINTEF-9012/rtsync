@@ -105,5 +105,10 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
      @Override
     public void timeSyncErrorFilter(int error) {
     }
+
+    @Override
+    public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
+
+    }
     
 }

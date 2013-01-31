@@ -21,6 +21,7 @@ public interface ITimeSynchronizerLogger {
     public void timeSyncStart();
     public void timeSyncReady();   
     public void timeSyncStop();   
+    public void timeSyncPingTimeout(int pingSeqNum, long tmt);
     public void timeSyncWrongSequence(int pingSeqNum, int pongSeqNum);
     public void timeSyncPong(int delay, int dtt, int dtr, int dts);
     public void timeSyncDtsFilter(int dts);
