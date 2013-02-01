@@ -80,19 +80,6 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
         
     }
 
-    @Override
-    public void timeSyncStop() {
-        
-    }
-
-    @Override
-    public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
-        
-    }
-    
-    @Override
-    public void timeSyncReady() {
-    }
 
     @Override
     public void timeSyncWrongSequence(int pingSeqNum, int pongSeqNum) {
@@ -109,6 +96,21 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
     @Override
     public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
 
+    }
+
+    @Override
+    public void timeSyncReady() {
+        
+    }
+
+    @Override
+    public void timeSyncStop() {
+       
+    }
+
+    @Override
+    public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
+    
     }
     
 }

@@ -236,8 +236,8 @@ public class TimeSynchronizer implements Runnable {
         
     }
 
-    public long getRegOffset() {
-        return regOffset;
+    public long getOffset() {
+        return regOffset + ts_offset;
     }
     /**
      * ************************************************************************
@@ -375,13 +375,13 @@ public class TimeSynchronizer implements Runnable {
             return 0; // We are not yet synchronized
         }
         if (ts_phase == BEFORE_WRAP && timestamp < ts_phase_frame) {
-            return this.getRegOffset() + ts_maxvalue + 1 + timestamp;
+            return this.getOffset() + ts_maxvalue + 1 + timestamp;
         }
         else if (ts_phase == AFTER_WRAP && timestamp > (ts_maxvalue - ts_phase_frame)) {
-            return this.getRegOffset() - ts_maxvalue - 1 + timestamp;
+            return this.getOffset() - ts_maxvalue - 1 + timestamp;
         }
         else {
-            return this.getRegOffset() + timestamp;
+            return this.getOffset() + timestamp;
         }
     }
     /**
