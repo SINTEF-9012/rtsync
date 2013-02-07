@@ -116,7 +116,7 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
     }
 
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped) {
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
         int ping = (int)(tmr - tmt);
         int err = (int) (offs - regOffsMs);
 

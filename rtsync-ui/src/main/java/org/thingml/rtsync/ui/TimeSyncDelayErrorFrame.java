@@ -113,7 +113,7 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
     }
 
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped) {
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
         int del = (int) delay;
         int err = (int) (offs - regOffsMs);
         bxyerr.appendDataRow(new int[] {del, err});

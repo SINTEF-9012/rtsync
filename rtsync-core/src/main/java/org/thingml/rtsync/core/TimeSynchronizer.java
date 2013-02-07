@@ -357,7 +357,7 @@ public class TimeSynchronizer implements Runnable {
             }
 
             for (ITimeSynchronizerLogger l : loggers) {
-                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, errorSum, zeroOffset, regOffset, ts_phase);
+                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, errorSum, zeroOffset, regOffset, ts_phase, ts_offset);
             }
         }
 
