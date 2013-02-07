@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.net.*;
 
 /**
  *
@@ -35,11 +36,14 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
      * ************************************************************************/
     //protected File folder;
     protected boolean logging = false;
+    protected boolean udpLog = false;
 
     public boolean isLogging() {
         return logging;
     }
     protected PrintWriter log;
+    protected DatagramSocket udpSocket;
+    protected InetAddress IPAddress;
     
     private SimpleDateFormat timestampFormat = new SimpleDateFormat("HH:mm:ss.SSS");
     private String SEPARATOR = "\t";
@@ -55,8 +59,11 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
        sFolder.mkdir();
         try {
            log = new PrintWriter(new FileWriter(new File(sFolder, "Time_Synch.txt")));
-           log.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "delay" + SEPARATOR + "offs" + SEPARATOR + "errorSum" + SEPARATOR + "zeroOffset" + SEPARATOR + "regOffsMs"+ SEPARATOR + "phase");
+           log.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "delay" + SEPARATOR + "offs" + SEPARATOR + "errorSum" + SEPARATOR + "zeroOffset" + SEPARATOR + "regOffsMs"+ SEPARATOR + "phase"+ SEPARATOR + "tsOffset");
            logging = true;
+           udpSocket = new DatagramSocket();
+           IPAddress = InetAddress.getByName("127.0.0.1");
+           udpLog = true;        
        } catch (IOException ex) {
            ex.printStackTrace();
        }
@@ -67,12 +74,32 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
             logging = false;
             log.close();
             log = null;
+            udpSocket.close();
+            udpLog = false;
+        }
+    }
+    
+    private void sendUdp( int ch, long valEpoc, float val) {
+        
+        long txEpoc = System.currentTimeMillis();
+        // System.out.println("txEpoc = " + txEpoc);
+        // System.out.println("valEpoc = " + valEpoc);
+        String sendStr = new String("#" + " " + ch + " " + txEpoc + " " + valEpoc + " " + val);
+        byte[] sendData;
+        sendData = sendStr.getBytes();
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 30000);
+        try {
+            udpSocket.send(sendPacket);
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
     }
     
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped) {
-        if (logging) log.println(time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped);
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
+        if (logging) log.println(time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped + SEPARATOR + tsOffset);
+        //if (udpLog) sendUdp(1, tmt, delay);
+
     }
 
     @Override
