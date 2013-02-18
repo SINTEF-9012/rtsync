@@ -34,6 +34,8 @@ public class TimeSynchronizer implements Runnable {
     
     private int dTsDeltaMax = 25; // delta time for TsFilter
     private int tsErrorMax = 50; // Maximum deviation for a calculated offset compared to regOffset
+    private int tsErrorMaxCounter = 0; // Counts number of consequtive errors above tsErrorMax
+    private static final int TS_ERROR_MAX_THRESHOLD = 20; // Threshold for restart of timeSync
     
     private int zeroOffsetAvgSize = 10; // Number of samples to calculate the initial offset
     
@@ -193,6 +195,7 @@ public class TimeSynchronizer implements Runnable {
         zeroOffset = 0; // Calculated offset as a zero value. 
         regOffset = 0; // Regulator output offset
         errorSum = 0; // Sum of error - used by integrator
+        tsErrorMaxCounter = 0;
         start_ping();
         for (ITimeSynchronizerLogger l : loggers) {
             l.timeSyncStart();
@@ -250,6 +253,11 @@ public class TimeSynchronizer implements Runnable {
 
     public synchronized void receive_TimeResponse(int timeSyncSeqNum, long value) {
 
+        //--------------------------------------
+        // 0) Log the raw pong data
+        //--------------------------------------
+        long tmr = System.currentTimeMillis();
+        for (ITimeSynchronizerLogger l : loggers) l.timeSyncPongRaw( currentTimeStamp(), pingSeqNum, timeSyncSeqNum, tmt, tmr, value);
         
         //--------------------------------------
         // 1) Validate the ping sequence number
@@ -292,7 +300,7 @@ public class TimeSynchronizer implements Runnable {
             //---------------------------------------------
             // 2) Collect all timing data (TMT, TMR and TS)
             //---------------------------------------------
-            long tmr = System.currentTimeMillis();
+            //long tmr = System.currentTimeMillis();
 
             int dTmr = (int) (tmr - tmrPrev); // time between the 2 last Pongs
             int dTmt = (int) (tmt - tmtPrev); // Time between the 2 last Pings
@@ -339,17 +347,27 @@ public class TimeSynchronizer implements Runnable {
             //---------------------------------------------------------
 
             long error = offset - regOffset;
-
+            
+            final int MAX_NORMAL = 0;
+            final int MAX_DETECTED = 1;
+            int errorMaxDetected = MAX_NORMAL;
+            
             if (state == READY) {
                 if (error > tsErrorMax) {
                     System.out.println("Limit - error(+) = " + error);
                     for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
-                }
-                else if (error < -tsErrorMax) {
+                    error = tsErrorMax; // Limit to +max
+                    errorMaxDetected = MAX_DETECTED;
+                } 
+                
+                if (error < -tsErrorMax) {
                     System.out.println("Limit - error(-) = " + error);
                     for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
+                    error = -tsErrorMax; // Limit to -max
+                    errorMaxDetected = MAX_DETECTED;
                 }
-                else {
+                
+                {
                     // Running integrator
                     errorSum += error;
                     regOffset = zeroOffset + (errorSum / kInt);
@@ -357,8 +375,19 @@ public class TimeSynchronizer implements Runnable {
             }
 
             for (ITimeSynchronizerLogger l : loggers) {
-                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, errorSum, zeroOffset, regOffset, ts_phase, ts_offset);
+                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, error, errorSum, zeroOffset, regOffset, ts_phase, ts_offset);
             }
+
+            if (errorMaxDetected == MAX_DETECTED) {
+                tsErrorMaxCounter++;
+                if (tsErrorMaxCounter > TS_ERROR_MAX_THRESHOLD) {
+                    this.start_timesync();
+                    System.out.println("tsErrorMaxCounter : " + tsErrorMaxCounter + " => force restart");
+                }
+            } else {
+                tsErrorMaxCounter = 0;
+            }
+                
         }
 
     }
