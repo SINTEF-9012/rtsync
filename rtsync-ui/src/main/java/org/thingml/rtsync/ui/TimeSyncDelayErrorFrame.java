@@ -113,9 +113,10 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
     }
 
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
         int del = (int) delay;
-        int err = (int) (offs - regOffsMs);
+        //int err = (int) (offs - regOffsMs); // Use limited error instead
+        int err = (int) error; 
         bxyerr.appendDataRow(new int[] {del, err});
         berr.insertData(err);
         bdelay.insertData(del);
@@ -147,5 +148,10 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
     @Override
     public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
         
+    }
+
+    @Override
+    public void timeSyncPongRaw(String time, int rcvPingSeqNum, int expectedPingSeqNum, long tmt, long tmr, long ts) {
+
     }
 }

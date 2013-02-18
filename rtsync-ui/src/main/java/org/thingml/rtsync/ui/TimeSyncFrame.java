@@ -582,12 +582,17 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
     }
 
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
         
     }
 
     @Override
     public void timeSyncPingTimeout(int pingSeqNum, long tmt) {
         
+    }
+
+    @Override
+    public void timeSyncPongRaw(String time, int rcvPingSeqNum, int expectedPingSeqNum, long tmt, long tmr, long value) {
+
     }
 }

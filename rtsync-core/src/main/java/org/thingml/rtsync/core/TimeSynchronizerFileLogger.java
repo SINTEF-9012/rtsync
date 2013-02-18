@@ -42,6 +42,7 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
         return logging;
     }
     protected PrintWriter log;
+    protected PrintWriter logRaw;
     protected DatagramSocket udpSocket;
     protected InetAddress IPAddress;
     
@@ -59,7 +60,9 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
        sFolder.mkdir();
         try {
            log = new PrintWriter(new FileWriter(new File(sFolder, "Time_Synch.txt")));
-           log.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "delay" + SEPARATOR + "offs" + SEPARATOR + "errorSum" + SEPARATOR + "zeroOffset" + SEPARATOR + "regOffsMs"+ SEPARATOR + "phase"+ SEPARATOR + "tsOffset");
+           log.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "delay" + SEPARATOR + "offs" + SEPARATOR + "error" + SEPARATOR + "errorSum" + SEPARATOR + "zeroOffset" + SEPARATOR + "regOffsMs"+ SEPARATOR + "phase"+ SEPARATOR + "tsOffset");
+           logRaw = new PrintWriter(new FileWriter(new File(sFolder, "Time_Synch_raw.txt")));
+           logRaw.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "SeqExp" + SEPARATOR + "SeqRcv");
            logging = true;
            udpSocket = new DatagramSocket();
            IPAddress = InetAddress.getByName("127.0.0.1");
@@ -74,6 +77,8 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
             logging = false;
             log.close();
             log = null;
+            logRaw.close();
+            logRaw = null;
             udpSocket.close();
             udpLog = false;
         }
@@ -82,6 +87,7 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
     private void sendUdp( int ch, long valEpoc, float val) {
         
         long txEpoc = System.currentTimeMillis();
+        ch--; 
         // System.out.println("txEpoc = " + txEpoc);
         // System.out.println("valEpoc = " + valEpoc);
         String sendStr = new String("#" + " " + ch + " " + txEpoc + " " + valEpoc + " " + val);
@@ -96,9 +102,10 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
     }
     
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
-        if (logging) log.println(time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped + SEPARATOR + tsOffset);
-        //if (udpLog) sendUdp(1, tmt, delay);
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
+        if (logging) log.println(time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + error + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped + SEPARATOR + tsOffset);
+        //if (udpLog) sendUdp(1, tmt, delay); // TODO remove before checkin
+        //if (udpLog) sendUdp(2, tmt, error); // TODO remove before checkin
 
     }
 
@@ -138,6 +145,12 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
     @Override
     public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
     
+    }
+
+    @Override
+    public void timeSyncPongRaw(String time, int rcvPingSeqNum, int expectedPingSeqNum, long tmt, long tmr, long ts) {
+        if (logging) logRaw.println(time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + expectedPingSeqNum + SEPARATOR + rcvPingSeqNum);
+
     }
     
 }

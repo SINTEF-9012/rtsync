@@ -26,6 +26,6 @@ public interface ITimeSynchronizerLogger {
     public void timeSyncPong(int delay, int dtt, int dtr, int dts);
     public void timeSyncDtsFilter(int dts);
     public void timeSyncErrorFilter(int error);
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset);
-    
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset);
+    public void timeSyncPongRaw(String time, int rcvPingSeqNum, int expectedPingSeqNum, long tmt, long tmr, long ts);
 }
