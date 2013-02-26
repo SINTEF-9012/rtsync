@@ -66,6 +66,7 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
            logging = true;
            udpSocket = new DatagramSocket();
            IPAddress = InetAddress.getByName("127.0.0.1");
+           
            udpLog = true;        
        } catch (IOException ex) {
            ex.printStackTrace();

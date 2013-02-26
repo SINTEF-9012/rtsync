@@ -33,9 +33,9 @@ public class TimeSynchronizer implements Runnable {
     private int pingSeqMax = 8;  // Maximum sequence number for the pings
     
     private int dTsDeltaMax = 25; // delta time for TsFilter
-    private int tsErrorMax = 50; // Maximum deviation for a calculated offset compared to regOffset
+    private int tsErrorMax = 75; // Maximum deviation for a calculated offset compared to regOffset
     private int tsErrorMaxCounter = 0; // Counts number of consequtive errors above tsErrorMax
-    private static final int TS_ERROR_MAX_THRESHOLD = 20; // Threshold for restart of timeSync
+    private static final int TS_ERROR_MAX_THRESHOLD = 40; // Threshold for restart of timeSync
     
     private int zeroOffsetAvgSize = 10; // Number of samples to calculate the initial offset
     
@@ -43,6 +43,70 @@ public class TimeSynchronizer implements Runnable {
     private int ts_phase_frame = 4096;
     
     private int kInt = 64; // 1/ki - Number of milliseconds to inc/dec
+    
+    private int ts_manual_offset = 1; // Manual offset added to the calculated error. Used for testing
+    private long tsScatter0Offs = 100;
+    private int tsScatter0Delay = 100;
+    private long tsScatter1Offs = 100;
+    private int tsScatter1Delay = 100;
+    private int tsScatterFrameCount = 0; // PingPong counter
+    private int tsScatterFrameMax = 50;  // Number of PingPong to scan before decide
+    private long tsScatterOffsSum = 0;
+    
+    private void tsScatterInit() {
+        tsScatter0Offs = 100;
+        tsScatter0Delay = 100;
+        tsScatter1Offs = 100;
+        tsScatter1Delay = 100;
+        tsScatterFrameCount = 0; // PingPong counter
+        tsScatterFrameMax = 50;  // Number of PingPong to scan before decide
+        tsScatterOffsSum = 0;
+    }
+
+    private void tsScatterNewPingPong(int delay, long offs) {
+        if (tsScatterFrameCount < 0) {
+            // Hold off to assure previous correction to take effect
+            tsScatterFrameCount++;
+            return;
+        }
+        if (tsScatterFrameCount < tsScatterFrameMax) {
+            tsScatterFrameCount++;
+            if (delay < tsScatter0Delay) {
+                // New lowest delay....
+                tsScatter1Offs = tsScatter0Offs;
+                tsScatter1Delay = tsScatter0Delay;
+                tsScatter0Offs = offs;
+                tsScatter0Delay = delay;
+                //System.out.println("tsScatter 0 [" + tsScatter0Offs + "," + tsScatter0Delay + "] tsScatter 1 [" + tsScatter1Offs + "," + tsScatter1Delay + "]");
+            } else if (delay < tsScatter1Delay) {
+                // New second lowest delay...
+                tsScatter1Offs = offs;
+                tsScatter1Delay = delay;
+                //System.out.println("tsScatter 0 [" + tsScatter0Offs + "," + tsScatter0Delay + "] tsScatter 1 [" + tsScatter1Offs + "," + tsScatter1Delay + "]");
+            }
+        } else
+        {
+            tsScatterOffsSum += (tsScatter0Offs + tsScatter1Offs) / 2;
+            tsScatterFrameCount = -kInt;
+            tsScatter0Offs = 100;
+            tsScatter0Delay = 100;
+            tsScatter1Offs = 100;
+            tsScatter1Delay = 100;
+            System.out.println("tsScatterOffsSum " + tsScatterOffsSum);
+        }
+    }
+
+    private long tsScatterOffsSum() {
+        return tsScatterOffsSum;
+    }
+    
+    public int getManualOffset() {
+        return ts_manual_offset;
+    }
+
+    public void setManualOffset(int offset) {
+        this.ts_manual_offset = offset;
+    }
 
     public int getPingSeqMax() {
         return pingSeqMax;
@@ -197,6 +261,7 @@ public class TimeSynchronizer implements Runnable {
         errorSum = 0; // Sum of error - used by integrator
         tsErrorMaxCounter = 0;
         start_ping();
+        tsScatterInit();
         for (ITimeSynchronizerLogger l : loggers) {
             l.timeSyncStart();
         }
@@ -346,26 +411,37 @@ public class TimeSynchronizer implements Runnable {
             // 5) Running the regulator
             //---------------------------------------------------------
 
-            long error = offset - regOffset;
+            tsScatterNewPingPong(delay, offset - regOffset);
+            long scatterOffs = ts_manual_offset;
+                if (ts_manual_offset == 0) {
+                    scatterOffs = -tsScatterOffsSum();
+                }  else {
+                    tsScatterInit(); // Hold in reset to avoid OffsetSum buildup
+                }
+                
+            long error = offset - regOffset - scatterOffs;
             
             final int MAX_NORMAL = 0;
             final int MAX_DETECTED = 1;
             int errorMaxDetected = MAX_NORMAL;
             
             if (state == READY) {
-                if (error > tsErrorMax) {
-                    System.out.println("Limit - error(+) = " + error);
+                //int high_limit = tsErrorMax;
+                if (error > (tsErrorMax)) {
+                    System.out.println("Limit - error(+) = " + error + " limit = " + tsErrorMax);
                     for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
-                    error = tsErrorMax; // Limit to +max
+                    error = (tsErrorMax); // Limit to +max
                     errorMaxDetected = MAX_DETECTED;
                 } 
                 
+                //int low_limit = -tsErrorMax;
                 if (error < -tsErrorMax) {
-                    System.out.println("Limit - error(-) = " + error);
+                    System.out.println("Limit - error(-) = " + error + " limit = " + -tsErrorMax);
                     for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
                     error = -tsErrorMax; // Limit to -max
                     errorMaxDetected = MAX_DETECTED;
                 }
+                //System.out.println("high_limit = " + high_limit + " error = " + error + " low_limit = " + low_limit);
                 
                 {
                     // Running integrator
@@ -375,7 +451,7 @@ public class TimeSynchronizer implements Runnable {
             }
 
             for (ITimeSynchronizerLogger l : loggers) {
-                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, error, errorSum, zeroOffset, regOffset, ts_phase, ts_offset);
+                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, error+scatterOffs, errorSum, zeroOffset, regOffset, ts_phase, ts_offset);
             }
 
             if (errorMaxDetected == MAX_DETECTED) {
