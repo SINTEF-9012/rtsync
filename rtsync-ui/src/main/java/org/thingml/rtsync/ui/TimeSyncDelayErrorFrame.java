@@ -59,10 +59,10 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
-        jPanel2 = new XYGraphPanel(bxyerr, "Error vs Delay (ms)", 0, 150, 25, -50, 50, 10, Color.red);
+        jPanel2 = new XYGraphPanel(bxyerr, "Error vs Delay (ms)", 0, 150, 25, -50, 50, 10, new java.awt.Color(0, 204, 51));
         jPanel6 = new javax.swing.JPanel();
-        jPanel3 = new BarGraphPanel(bdelay, "Calculated delay (ms)", 0, 200, 50, Color.red);
-        jPanel4 = new BarGraphPanel(berr, "Error", -40, 40, 20, Color.red);
+        jPanel3 = new BarGraphPanel(bdelay, "Calculated delay (ms)", 0, 200, 50, new java.awt.Color(0, 204, 51));
+        jPanel4 = new BarGraphPanel(berr, "Error", -40, 40, 20, new java.awt.Color(0, 204, 51));
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {

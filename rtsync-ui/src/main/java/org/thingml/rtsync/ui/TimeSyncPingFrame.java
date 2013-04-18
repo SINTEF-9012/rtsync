@@ -64,10 +64,10 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
-        jPanel2 = new BarGraphPanel(bping, "Roundtrip ping time (ms)", 0, 500, 100, Color.red);
-        jPanel3 = new BarGraphPanel(bdtt, "dT between pings on Master (ms)", 0, 500, 100, Color.red);
-        jPanel4 = new BarGraphPanel(bdts, "dT between pongs on Slave (ms)", -50, 50, 25, Color.red);
-        jPanel5 = new BarGraphPanel(bdtr, "dT between pongs on Master (ms)", -100, 100, 25, Color.red);
+        jPanel2 = new BarGraphPanel(bping, "Roundtrip ping time (ms)", 0, 500, 100, new java.awt.Color(0, 204, 51));
+        jPanel3 = new BarGraphPanel(bdtt, "dT between pings on Master (ms)", 0, 500, 100, new java.awt.Color(0, 204, 51));
+        jPanel4 = new BarGraphPanel(bdts, "dT between pongs on Slave (ms)", -50, 50, 25, new java.awt.Color(0, 204, 51));
+        jPanel5 = new BarGraphPanel(bdtr, "dT between pongs on Master (ms)", -100, 100, 25, new java.awt.Color(0, 204, 51));
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {

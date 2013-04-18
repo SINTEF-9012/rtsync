@@ -38,28 +38,28 @@
       <SubComponents>
         <Container class="javax.swing.JPanel" name="jPanel2">
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bping, &quot;Roundtrip ping time (ms)&quot;, 0, 500, 100, Color.red);"/>
+            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bping, &quot;Roundtrip ping time (ms)&quot;, 0, 500, 100, new java.awt.Color(0, 204, 51));"/>
           </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"/>
         </Container>
         <Container class="javax.swing.JPanel" name="jPanel3">
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdtt, &quot;dT between pings on Master (ms)&quot;, 0, 500, 100, Color.red);"/>
+            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdtt, &quot;dT between pings on Master (ms)&quot;, 0, 500, 100, new java.awt.Color(0, 204, 51));"/>
           </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"/>
         </Container>
         <Container class="javax.swing.JPanel" name="jPanel4">
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdts, &quot;dT between pongs on Slave (ms)&quot;, -50, 50, 25, Color.red);"/>
+            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdts, &quot;dT between pongs on Slave (ms)&quot;, -50, 50, 25, new java.awt.Color(0, 204, 51));"/>
           </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"/>
         </Container>
         <Container class="javax.swing.JPanel" name="jPanel5">
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdtr, &quot;dT between pongs on Master (ms)&quot;, -100, 100, 25, Color.red);"/>
+            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdtr, &quot;dT between pongs on Master (ms)&quot;, -100, 100, 25, new java.awt.Color(0, 204, 51));"/>
           </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"/>

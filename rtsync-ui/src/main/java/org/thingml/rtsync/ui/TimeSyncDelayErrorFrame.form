@@ -39,7 +39,7 @@
       <SubComponents>
         <Container class="javax.swing.JPanel" name="jPanel2">
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new XYGraphPanel(bxyerr, &quot;Error vs Delay (ms)&quot;, 0, 150, 25, -50, 50, 10, Color.red);"/>
+            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new XYGraphPanel(bxyerr, &quot;Error vs Delay (ms)&quot;, 0, 150, 25, -50, 50, 10, new java.awt.Color(0, 204, 51));"/>
           </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"/>
@@ -52,14 +52,14 @@
           <SubComponents>
             <Container class="javax.swing.JPanel" name="jPanel3">
               <AuxValues>
-                <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdelay, &quot;Calculated delay (ms)&quot;, 0, 200, 50, Color.red);"/>
+                <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(bdelay, &quot;Calculated delay (ms)&quot;, 0, 200, 50, new java.awt.Color(0, 204, 51));"/>
               </AuxValues>
 
               <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"/>
             </Container>
             <Container class="javax.swing.JPanel" name="jPanel4">
               <AuxValues>
-                <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(berr, &quot;Error&quot;, -40, 40, 20, Color.red);"/>
+                <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new BarGraphPanel(berr, &quot;Error&quot;, -40, 40, 20, new java.awt.Color(0, 204, 51));"/>
               </AuxValues>
 
               <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"/>
