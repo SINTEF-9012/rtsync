@@ -25,13 +25,28 @@ public class TimeSynchronizer implements Runnable {
 
     /**
      * ************************************************************************
+     * TimesyncV2 - Extension for loggable timesync looping offset out on the the sensor
+     * ***********************************************************************
+     */
+//    private long lastSentOffset = 0;
+    private long lastRegOffset = 0;
+    private boolean timesyncV2Active = false;
+
+    private int pingSeqV2Detect = 9;    // TimesyncV2 will change this sequence number to 1
+    private boolean detectedV2 = false; // TimesyncV2 detected - Extension for loggable timesync looping offset out on the the sensor
+    private boolean sentFullEpochV2 = false; // TimesyncV2 sent full Epoch after connect
+    private long lastReceivedEpochV2 = 0; // TimesyncV2 lastReceived Epoch from slave ... should be the same as this.getOffset() except for wrap
+    /**
+     * ************************************************************************
      * Configuration and parameters of the Time Sync Algorithm
      * ***********************************************************************
      */
     private int pingRate = 250;  // Rate for ping in milliseconds
     
-    private int pingSeqMax = 8;  // Maximum sequence number for the pings
-    
+    private int pingSeqMax = 9;  // Maximum sequence number for the pings
+    private int pingSeqMin = 0;  // Minimum sequence number for the pings
+    private int pingSeqMod = 8;  // Modulo number for the pings. Higher numbers are used for version information
+
     private int dTsDeltaMax = 25; // delta time for TsFilter
     private int tsErrorMax = 75; // Maximum deviation for a calculated offset compared to regOffset
     private int tsErrorMaxCounter = 0; // Counts number of consequtive errors above tsErrorMax
@@ -116,6 +131,14 @@ public class TimeSynchronizer implements Runnable {
         this.pingSeqMax = pingSeqMax;
     }
     
+    public int getPingSeqMin() {
+        return pingSeqMin;
+    }
+
+    public void setPingSeqMin(int pingSeqMin) {
+        this.pingSeqMin = pingSeqMin;
+    }
+    
     public int getTs_maxvalue() {
         return ts_maxvalue;
     }
@@ -174,12 +197,23 @@ public class TimeSynchronizer implements Runnable {
      * ***********************************************************************
      */
     protected TimeSynchronizable device;
+    protected TimeSynchronizableV2 deviceV2;
 
     public TimeSynchronizer(TimeSynchronizable device, int ts_maxvalue) {
         this.device = device;
+        this.deviceV2 = null;
         this.ts_maxvalue = ts_maxvalue;
         this.ts_phase_frame = ts_maxvalue / 4;
     }
+
+
+    public TimeSynchronizer(TimeSynchronizableV2 deviceV2, int ts_maxvalue) {
+        this.device = deviceV2;
+        this.deviceV2 = deviceV2;
+        this.ts_maxvalue = ts_maxvalue;
+        this.ts_phase_frame = ts_maxvalue / 4;
+    }
+    
     
     /**
      * ************************************************************************
@@ -260,6 +294,11 @@ public class TimeSynchronizer implements Runnable {
         regOffset = 0; // Regulator output offset
         errorSum = 0; // Sum of error - used by integrator
         tsErrorMaxCounter = 0;
+//        lastSentOffset = 0;
+        lastRegOffset = 0;
+        timesyncV2Active = false;
+        detectedV2 = false;
+        sentFullEpochV2 = false;
         start_ping();
         tsScatterInit();
         for (ITimeSynchronizerLogger l : loggers) {
@@ -281,12 +320,16 @@ public class TimeSynchronizer implements Runnable {
         
         synchronized(pongMonitor) {
             try {
-                if (!got_pong) pongMonitor.wait(pingRate*3); // Give some time for the pong to arrive
+                if (!got_pong) {
+                    System.out.println("Pong given extra time");
+                    pongMonitor.wait(pingRate*3);
+                } // Give some time for the pong to arrive
             } catch (InterruptedException ex) {
                 Logger.getLogger(TimeSynchronizer.class.getName()).log(Level.SEVERE, null, ex);
             }
             
             if (!got_pong) { // Timeout, the pong is declared lost
+                System.out.println("Pong timeout");
                 for (ITimeSynchronizerLogger l : loggers) l.timeSyncPingTimeout(pingSeqNum, tmt);
             }
             
@@ -294,7 +337,7 @@ public class TimeSynchronizer implements Runnable {
         // Send the next ping
         pingSeqNum++;
         if (pingSeqNum > pingSeqMax) { 
-            pingSeqNum = 0;
+            pingSeqNum = pingSeqMin;
         }
         
         tmt = System.currentTimeMillis();
@@ -329,13 +372,20 @@ public class TimeSynchronizer implements Runnable {
         //--------------------------------------
         synchronized(pongMonitor) {
             if (timeSyncSeqNum > pingSeqMax) {
-                timeSyncSeqNum = 0;  // Range check of sequence number. Should never occur
+                timeSyncSeqNum = pingSeqMin;  // Range check of sequence number. Should never occur
                 for (ITimeSynchronizerLogger l : loggers) l.timeSyncWrongSequence(pingSeqNum, timeSyncSeqNum);
                 return;
             }
-            if (tmt == 0 || timeSyncSeqNum != pingSeqNum) {// The the ping sequence number is not correct
+            if (tmt == 0 || (timeSyncSeqNum % pingSeqMod) != (pingSeqNum % pingSeqMod)) {// The the ping sequence number is not correct
                 for (ITimeSynchronizerLogger l : loggers) l.timeSyncWrongSequence(pingSeqNum, timeSyncSeqNum);
                 return;
+            }
+            if (timeSyncSeqNum != pingSeqNum) {  // The remote indicates version information
+                if ( pingSeqNum == pingSeqV2Detect) {
+                    if (detectedV2 == false)
+                        System.out.println("receive_TimeResponse() TimesyncV2 slave detected");
+                    detectedV2 = true;
+                }
             }
             got_pong = true;
             pongMonitor.notify();
@@ -355,6 +405,10 @@ public class TimeSynchronizer implements Runnable {
             else if (ts_phase == BEFORE_WRAP && value < ts_phase_frame) {
                 ts_offset += ts_maxvalue + 1; // increment the offset
                 ts_phase = AFTER_WRAP;
+                if ((detectedV2 == true) && (sentFullEpochV2 == false)) {
+                    updateRemoteOffset(regOffset, true);  // Send full Epoch to slave - timesyncV2
+                    sentFullEpochV2 = true;
+                }
             }
             else if (ts_phase == AFTER_WRAP && value > ts_phase_frame) {
                 ts_phase = NO_WRAP;
@@ -447,6 +501,7 @@ public class TimeSynchronizer implements Runnable {
                     // Running integrator
                     errorSum += error;
                     regOffset = zeroOffset + (errorSum / kInt);
+                    updateRemoteOffset(regOffset, false);
                 }
             }
 
@@ -470,11 +525,43 @@ public class TimeSynchronizer implements Runnable {
 
     /**
      * ************************************************************************
-     * Translation of device timestanp into synchronized timestamp
+     * Translation of device timestamp into synchronized timestamp
      * ***********************************************************************
      */
 
+    long testDiffLast = 0;
+    long testDiffLastCount = 0;
     public long getSynchronizedEpochTime(int timestamp) {
+
+        long v1Time = getSynchronizedEpochTimeV1(timestamp);
+        long v2Time = lastReceivedEpochV2 + timestamp;        
+        
+        if ( timesyncV2Active == true ) {
+            long diff = v1Time - v2Time;
+            if ( (diff > 1) || (diff < -1) ) {
+                System.out.println("getSynchronizedEpochTime() - timestamp: "+timestamp+" v1 : "+v1Time+" v2 : "+v2Time);
+                if ( testDiffLast == diff ) {
+                    testDiffLastCount++;
+                } else {
+                    if (testDiffLastCount != 0)
+                        System.out.println("getSynchronizedEpochTime() - got diff : "+ testDiffLast + " count : "+ testDiffLastCount);
+                    testDiffLast = diff;
+                    testDiffLastCount = 0;
+                }
+            } else {
+                if (testDiffLastCount != 0) {
+                    System.out.println("getSynchronizedEpochTime() - timestamp: "+timestamp+" v1 : "+v1Time+" v2 : "+v2Time);
+                    System.out.println("getSynchronizedEpochTime() - got diff : "+ testDiffLast + " count : "+ testDiffLastCount);
+                }
+                testDiffLast = 0;
+                testDiffLastCount = 0;
+            }
+        }
+        
+        return (v1Time);
+    }
+
+    private long getSynchronizedEpochTimeV1(int timestamp) {
 
         if (regOffset == 0 || ts_phase == UNKNOWN_WRAP) {
             return 0; // We are not yet synchronized
@@ -489,6 +576,8 @@ public class TimeSynchronizer implements Runnable {
             return this.getOffset() + timestamp;
         }
     }
+    
+    
     /**
      * ************************************************************************
      * Sending of the time requests at reqular interval
@@ -529,4 +618,49 @@ public class TimeSynchronizer implements Runnable {
             running = false;
         }
     }
+
+    /**
+     * ************************************************************************
+     * TimesyncV2 - Extension for loggable timesync looping offset out on the the sensor
+     * ***********************************************************************
+     */
+    private void updateRemoteOffset( long currRegOffset, boolean fullUpdate) {
+        long currentOffset = this.getOffset();
+        if ( (deviceV2 != null) && (detectedV2 == false) ) {
+            //System.out.println("updateRemoteOffset() send failed due to no deviceV2 detected");
+            return;
+        }
+        
+        if (fullUpdate == true) {
+            if ( detectedV2 ) {
+                deviceV2.sendEpochCorr(0x7fffffffffffffffl); // Force full update
+                deviceV2.sendEpochCorr(currentOffset);
+                //System.out.println("updateRemoteOffset() send full update : " + currentOffset + " currRegOffset : " + currRegOffset);
+                lastRegOffset = currRegOffset;
+//                lastSentOffset = currentOffset;
+            } 
+        } else {
+            if (lastRegOffset != currRegOffset) {
+                if ( deviceV2 != null ) {
+                    long corr =  currRegOffset - lastRegOffset;
+                    //System.out.println("updateRemoteOffset() send corr : " + currentOffset + " currRegOffset : " + currRegOffset + " corr: "+ corr);
+                    if ( detectedV2 ) {
+                        deviceV2.sendEpochCorr(corr);
+                        lastRegOffset = currRegOffset;
+//                        lastSentOffset = currentOffset;
+                    }
+                } else {
+                    // System.out.println("updateRemoteOffset() Not supported for old drivers ");
+                }
+            }
+            
+        }
+    }
+    
+    public void receiveEpoch( long epoch) {
+        System.out.println("receiveEpoch()       got epoch : "+ epoch + " diff : "+ (epoch-lastReceivedEpochV2));
+        lastReceivedEpochV2 = epoch;
+        timesyncV2Active = true;
+    }
+
 }
