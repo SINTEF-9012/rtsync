@@ -36,7 +36,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <rtsync.version>${project.version}</rtsync.version>
         <bundle.vendor>SINTEF</bundle.vendor>
-  </properties>
+        <maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
+        <my.build.date>${maven.build.timestamp}</my.build.date>
+</properties>
   
   <modules>
 		<module>rtsync-core</module>
