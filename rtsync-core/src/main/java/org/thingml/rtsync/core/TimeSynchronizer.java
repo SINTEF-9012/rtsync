@@ -36,6 +36,7 @@ public class TimeSynchronizer implements Runnable {
     private boolean detectedV2 = false; // TimesyncV2 detected - Extension for loggable timesync looping offset out on the the sensor
     private boolean sentFullEpochV2 = false; // TimesyncV2 sent full Epoch after connect
     private long lastReceivedEpochV2 = 0; // TimesyncV2 lastReceived Epoch from slave ... should be the same as this.getOffset() except for wrap
+    private boolean compareReceivedEpochV2 = false; // TimesyncV2 use compare lastReceived Epoch from slave (for test) ... this must be disabled during playback of stored data
     /**
      * ************************************************************************
      * Configuration and parameters of the Time Sync Algorithm
@@ -201,18 +202,22 @@ public class TimeSynchronizer implements Runnable {
 
     public TimeSynchronizer(TimeSynchronizable device, int ts_maxvalue) {
         this.device = device;
-        this.deviceV2 = null;
+        if (device instanceof TimeSynchronizableV2) {
+            this.deviceV2 = (TimeSynchronizableV2)device;
+        } else {
+            this.deviceV2 = null;
+        }
         this.ts_maxvalue = ts_maxvalue;
         this.ts_phase_frame = ts_maxvalue / 4;
     }
 
 
-    public TimeSynchronizer(TimeSynchronizableV2 deviceV2, int ts_maxvalue) {
-        this.device = deviceV2;
-        this.deviceV2 = deviceV2;
-        this.ts_maxvalue = ts_maxvalue;
-        this.ts_phase_frame = ts_maxvalue / 4;
-    }
+//    public TimeSynchronizer(TimeSynchronizableV2 deviceV2, int ts_maxvalue) {
+//        this.device = deviceV2;
+//        this.deviceV2 = deviceV2;
+//        this.ts_maxvalue = ts_maxvalue;
+//        this.ts_phase_frame = ts_maxvalue / 4;
+//    }
     
     
     /**
@@ -297,6 +302,7 @@ public class TimeSynchronizer implements Runnable {
 //        lastSentOffset = 0;
         lastRegOffset = 0;
         timesyncV2Active = false;
+        compareReceivedEpochV2 = false;
         detectedV2 = false;
         sentFullEpochV2 = false;
         start_ping();
@@ -416,6 +422,20 @@ public class TimeSynchronizer implements Runnable {
 
             long ts = ts_offset + value;  // Slave timestamp which does not wrap around.
 
+            //----------------------------------------------
+            // 1c) Send initial full EPOCH update to slave
+            //----------------------------------------------
+
+            if ((detectedV2 == true) && (sentFullEpochV2 == false)) {
+                if (state == READY) {
+                    if ((ts_phase != UNKNOWN_WRAP) && (ts_phase != BEFORE_WRAP)) {
+                        updateRemoteOffset(regOffset, true);  // Send full Epoch to slave - timesyncV2
+                        sentFullEpochV2 = true;
+                    }
+                }
+            }
+            
+            
             //---------------------------------------------
             // 2) Collect all timing data (TMT, TMR and TS)
             //---------------------------------------------
@@ -535,30 +555,36 @@ public class TimeSynchronizer implements Runnable {
 
         long v1Time = getSynchronizedEpochTimeV1(timestamp);
         long v2Time = lastReceivedEpochV2 + timestamp;        
+        long ret    = v1Time;
         
-        if ( timesyncV2Active == true ) {
-            long diff = v1Time - v2Time;
-            if ( (diff > 1) || (diff < -1) ) {
-                System.out.println("getSynchronizedEpochTime() - timestamp: "+timestamp+" v1 : "+v1Time+" v2 : "+v2Time);
-                if ( testDiffLast == diff ) {
-                    testDiffLastCount++;
+        if ( timesyncV2Active == true )
+            ret = v2Time;
+        
+        if ( compareReceivedEpochV2 == true) {
+            if ( timesyncV2Active == true ) {
+                long diff = v1Time - v2Time;
+                if ( (diff > 1) || (diff < -1) ) {
+                    System.out.println("getSynchronizedEpochTime() - timestamp: "+timestamp+" v1 : "+v1Time+" v2 : "+v2Time);
+                    if ( testDiffLast == diff ) {
+                        testDiffLastCount++;
+                    } else {
+                        if (testDiffLastCount != 0)
+                            System.out.println("getSynchronizedEpochTime() - got diff : "+ testDiffLast + " count : "+ testDiffLastCount);
+                        testDiffLast = diff;
+                        testDiffLastCount = 0;
+                    }
                 } else {
-                    if (testDiffLastCount != 0)
+                    if (testDiffLastCount != 0) {
+                        System.out.println("getSynchronizedEpochTime() - timestamp: "+timestamp+" v1 : "+v1Time+" v2 : "+v2Time);
                         System.out.println("getSynchronizedEpochTime() - got diff : "+ testDiffLast + " count : "+ testDiffLastCount);
-                    testDiffLast = diff;
+                    }
+                    testDiffLast = 0;
                     testDiffLastCount = 0;
                 }
-            } else {
-                if (testDiffLastCount != 0) {
-                    System.out.println("getSynchronizedEpochTime() - timestamp: "+timestamp+" v1 : "+v1Time+" v2 : "+v2Time);
-                    System.out.println("getSynchronizedEpochTime() - got diff : "+ testDiffLast + " count : "+ testDiffLastCount);
-                }
-                testDiffLast = 0;
-                testDiffLastCount = 0;
             }
         }
         
-        return (v1Time);
+        return (ret);
     }
 
     private long getSynchronizedEpochTimeV1(int timestamp) {
@@ -626,7 +652,11 @@ public class TimeSynchronizer implements Runnable {
      */
     private void updateRemoteOffset( long currRegOffset, boolean fullUpdate) {
         long currentOffset = this.getOffset();
-        if ( (deviceV2 != null) && (detectedV2 == false) ) {
+        if (deviceV2 == null) {
+            //System.out.println("updateRemoteOffset() send failed due to no deviceV2 driver registered");
+            return;
+        }
+        if (detectedV2 == false) {
             //System.out.println("updateRemoteOffset() send failed due to no deviceV2 detected");
             return;
         }
@@ -655,6 +685,11 @@ public class TimeSynchronizer implements Runnable {
             }
             
         }
+    }
+    
+    public void compareReceivedEpoch( boolean val ) {
+        System.out.println("compareReceivedEpoch()       got val : "+ val);
+        compareReceivedEpochV2 = val;
     }
     
     public void receiveEpoch( long epoch) {
