@@ -407,17 +407,32 @@ public class TimeSynchronizer implements Runnable {
             }
             else if (ts_phase == NO_WRAP && value > (ts_maxvalue - ts_phase_frame)) {
                 ts_phase = BEFORE_WRAP;
+                //System.out.println("Goto BEFORE_WRAP");
+            }
+            else if (ts_phase == NO_WRAP && value < ts_phase_frame) {
+                ts_phase = AFTER_WRAP; // Cleanup after pause ... not normal case
+                System.out.println("Catch up error wrap - goes directly to AFTER_WRAP");
             }
             else if (ts_phase == BEFORE_WRAP && value < ts_phase_frame) {
                 ts_offset += ts_maxvalue + 1; // increment the offset
                 ts_phase = AFTER_WRAP;
+                //System.out.println("Goto AFTER_WRAP");
                 if ((detectedV2 == true) && (sentFullEpochV2 == false)) {
                     updateRemoteOffset(regOffset, true);  // Send full Epoch to slave - timesyncV2
                     sentFullEpochV2 = true;
                 }
             }
+            else if (ts_phase == BEFORE_WRAP && value < (ts_maxvalue - ts_phase_frame)) {
+                ts_phase = NO_WRAP; // Cleanup after pause ... not normal case
+                System.out.println("Catch up error wrap - goes directly to NO_WRAP");
+            }
+            else if (ts_phase == AFTER_WRAP && value > (ts_maxvalue - ts_phase_frame)) {
+                ts_phase = BEFORE_WRAP; // Cleanup after pause ... not normal case
+                System.out.println("Catch up error wrap - goes directly to BEFORE_WRAP");
+            }
             else if (ts_phase == AFTER_WRAP && value > ts_phase_frame) {
                 ts_phase = NO_WRAP;
+                //System.out.println("Goto NO_WRAP");
             }
 
             long ts = ts_offset + value;  // Slave timestamp which does not wrap around.
@@ -501,6 +516,25 @@ public class TimeSynchronizer implements Runnable {
             
             if (state == READY) {
                 //int high_limit = tsErrorMax;
+                if (error > 15000) {
+                    // There has been a pause in pingpong and device has wrapped ... catch up needed
+                    System.out.println("Catch up error(+) = " + error);
+                    while (error > 15000) {
+                        //System.out.println("Catch up error(+) = " + error);
+                        error -= ts_maxvalue + 1;
+                        ts_offset += ts_maxvalue + 1; // increment the offset
+                    }
+                }
+                if (error < -15000) {
+                    // There has been a pause in pingpong and device has wrapped ... catch up needed
+                    System.out.println("Catch up error(-) = " + error);
+                    while (error < -15000) {
+                        //System.out.println("Catch up error(+) = " + error);
+                        error += ts_maxvalue + 1;
+                        ts_offset -= ts_maxvalue + 1; // increment the offset
+                    }
+                }
+
                 if (error > (tsErrorMax)) {
                     System.out.println("Limit - error(+) = " + error + " limit = " + tsErrorMax);
                     for (ITimeSynchronizerLogger l : loggers) l.timeSyncErrorFilter((int)error);
@@ -616,14 +650,14 @@ public class TimeSynchronizer implements Runnable {
         return running;
     }
 
-    protected void start_ping() {
+    public void start_ping() {
         if (!running) {
             stop_request = false;
             new Thread(this).start();
         }
     }
 
-    protected void stop_ping() {
+    public void stop_ping() {
         if (running) {
             stop_request = true;
         }
