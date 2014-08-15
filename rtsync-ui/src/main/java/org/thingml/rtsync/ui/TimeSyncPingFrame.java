@@ -34,6 +34,7 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
     protected GraphBuffer bdtt = new GraphBuffer(100);
     protected GraphBuffer bdtr = new GraphBuffer(100);
     protected GraphBuffer bdts = new GraphBuffer(100);
+    protected GraphBuffer boffs = new GraphBuffer(100);
     protected TimeSynchronizer ts = null;
     
     private int pingrate = 250;
@@ -52,6 +53,7 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
         ((GraphPanel)jPanel3).start();
         ((GraphPanel)jPanel4).start();
         ((GraphPanel)jPanel5).start();
+        ((GraphPanel)jPanel6).start();
     }
 
     /**
@@ -68,6 +70,7 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
         jPanel3 = new BarGraphPanel(bdtt, "dT between pings on Master (ms)", 0, 500, 100, new java.awt.Color(0, 204, 51));
         jPanel4 = new BarGraphPanel(bdts, "dT between pongs on Slave (ms)", -50, 50, 25, new java.awt.Color(0, 204, 51));
         jPanel5 = new BarGraphPanel(bdtr, "dT between pongs on Master (ms)", -100, 100, 25, new java.awt.Color(0, 204, 51));
+        jPanel6 = new BarGraphPanel(boffs, "dOffs between pongs (1sec) on Master (ms)", -100, 100, 25, new java.awt.Color(0, 204, 51));
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -81,6 +84,7 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
         jPanel1.add(jPanel3);
         jPanel1.add(jPanel4);
         jPanel1.add(jPanel5);
+        jPanel1.add(jPanel6);
 
         getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
 
@@ -95,6 +99,7 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
           ((GraphPanel)jPanel3).stop();
           ((GraphPanel)jPanel4).stop();
           ((GraphPanel)jPanel5).stop();
+          ((GraphPanel)jPanel6).stop();
     }//GEN-LAST:event_formWindowClosed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -103,6 +108,7 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
+    private javax.swing.JPanel jPanel6;
     // End of variables declaration//GEN-END:variables
 
     @Override
@@ -115,20 +121,44 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
         
     }
 
+    int     delay;    // round trip delay
+    long    offset; // instant offset between PC and sensor clocks
+    long    zeroOffset = 0;
+    long    tmt;
+    long    tmr;
+    int     offsetArrIdx = 0;
+    boolean offsetArrReady = false;
+    long[]  offsetArr = new long[4];
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset, long ulimError) {
         int ping = (int)(tmr - tmt);
         // int err = (int) (offs - regOffsMs); // Use limited error instead
         int err = (int) error;
-
+        
+        this.zeroOffset = zeroOffset;
     }
 
     @Override
-    public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
+    public void timeSyncPong(int delay, int dtt, int dtr, int dts, long tsNoWrap) {
         bping.insertData(delay);
         bdtt.insertData(dtt);
         bdts.insertData(dts-dtt);
         bdtr.insertData(dtr-dts);
+
+        delay = (int)(tmr - tmt) / 2; // round trip delay
+        offset = -tsNoWrap + tmt + delay; // instant offset between PC and sensor clocks
+
+        int lastOffsetIdx = offsetArrIdx;
+        offsetArr[offsetArrIdx] = offset;
+        offsetArrIdx++;
+        if( offsetArrIdx >= 4) {
+            offsetArrIdx = 0;
+            offsetArrReady = true;
+        }
+        if( offsetArrReady ) {
+            boffs.insertData((int)(offsetArr[lastOffsetIdx] - offsetArr[offsetArrIdx]));
+        }
+    
     }
     
     @Override
@@ -155,6 +185,8 @@ public class TimeSyncPingFrame extends javax.swing.JFrame implements ITimeSynchr
 
     @Override
     public void timeSyncPongRaw(String time, int rcvPingSeqNum, int expectedPingSeqNum, long tmt, long tmr, long ts) {
+        this.tmt = tmt;
+        this.tmr = tmr;
 
     }
 }

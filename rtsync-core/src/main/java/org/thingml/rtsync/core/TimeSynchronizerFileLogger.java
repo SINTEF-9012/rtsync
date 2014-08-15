@@ -60,7 +60,7 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
        sFolder.mkdir();
         try {
            log = new PrintWriter(new FileWriter(new File(sFolder, "Time_Synch.txt")));
-           log.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "delay" + SEPARATOR + "offs" + SEPARATOR + "error" + SEPARATOR + "errorSum" + SEPARATOR + "zeroOffset" + SEPARATOR + "regOffsMs"+ SEPARATOR + "phase"+ SEPARATOR + "tsOffset");
+           log.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "delay" + SEPARATOR + "offs" + SEPARATOR + "error" + SEPARATOR + "errorSum" + SEPARATOR + "zeroOffset" + SEPARATOR + "regOffsMs"+ SEPARATOR + "phase"+ SEPARATOR + "tsOffset"+ SEPARATOR + "unlimError");
            logRaw = new PrintWriter(new FileWriter(new File(sFolder, "Time_Synch_raw.txt")));
            logRaw.println("Time" + SEPARATOR + "TS" + SEPARATOR + "TMT" + SEPARATOR + "TMR" + SEPARATOR + "SeqExp" + SEPARATOR + "SeqRcv");
            logging = true;
@@ -103,8 +103,8 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
     }
     
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
-        if (logging) log.println(time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + error + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped + SEPARATOR + tsOffset);
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset, long unlimError) {
+        if (logging) log.println(time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + error + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped + SEPARATOR + tsOffset + SEPARATOR + unlimError);
         //if (udpLog) sendUdp(1, tmt, delay); // TODO remove before checkin
         //if (udpLog) sendUdp(2, tmt, error); // TODO remove before checkin
 
@@ -144,7 +144,7 @@ public class TimeSynchronizerFileLogger implements ITimeSynchronizerLogger {
     }
 
     @Override
-    public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
+    public void timeSyncPong(int delay, int dtt, int dtr, int dts, long tsNoWrap) {
     
     }
 

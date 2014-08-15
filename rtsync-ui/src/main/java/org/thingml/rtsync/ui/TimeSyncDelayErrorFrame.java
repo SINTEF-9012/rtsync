@@ -33,7 +33,8 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
     
     protected GraphBuffer berr = new GraphBuffer(100);
     protected GraphBuffer bdelay = new GraphBuffer(100);
-    
+    protected GraphBuffer boffs = new GraphBuffer(100);
+    protected GraphBuffer bulimerr = new GraphBuffer(100);
    
     protected TimeSynchronizer ts = null;
     
@@ -47,6 +48,8 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
         ((XYGraphPanel)jPanel2).start();
         ((GraphPanel)jPanel3).start();
         ((GraphPanel)jPanel4).start();
+        ((GraphPanel)jPanel5).start();
+        ((GraphPanel)jPanel7).start();
     }
 
     /**
@@ -63,6 +66,8 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
         jPanel6 = new javax.swing.JPanel();
         jPanel3 = new BarGraphPanel(bdelay, "Calculated delay (ms)", 0, 200, 50, new java.awt.Color(0, 204, 51));
         jPanel4 = new BarGraphPanel(berr, "Error", -40, 40, 20, new java.awt.Color(0, 204, 51));
+        jPanel5 = new LineGraphPanel(boffs, "Regoffset-zero", -40, 40, 20, new java.awt.Color(0, 204, 51));
+        jPanel7 = new BarGraphPanel(bulimerr, "Error unlimited", -40, 40, 20, new java.awt.Color(0, 204, 51));
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -77,6 +82,8 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
         jPanel6.setLayout(new javax.swing.BoxLayout(jPanel6, javax.swing.BoxLayout.PAGE_AXIS));
         jPanel6.add(jPanel3);
         jPanel6.add(jPanel4);
+        jPanel6.add(jPanel5);
+        jPanel6.add(jPanel7);
 
         jPanel1.add(jPanel6);
 
@@ -92,6 +99,8 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
           ((XYGraphPanel)jPanel2).stop();
           ((GraphPanel)jPanel3).stop();
           ((GraphPanel)jPanel4).stop();
+          ((GraphPanel)jPanel5).stop();
+          ((GraphPanel)jPanel7).stop();
     }//GEN-LAST:event_formWindowClosed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -99,7 +108,9 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
+    private javax.swing.JPanel jPanel7;
     // End of variables declaration//GEN-END:variables
 
     @Override
@@ -113,18 +124,20 @@ public class TimeSyncDelayErrorFrame extends javax.swing.JFrame implements ITime
     }
 
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset, long unlimError) {
         int del = (int) delay;
         //int err = (int) (offs - regOffsMs); // Use limited error instead
         int err = (int) error; 
         bxyerr.appendDataRow(new int[] {del, err});
         berr.insertData(err);
         bdelay.insertData(del);
+        boffs.insertData((int)(regOffsMs-zeroOffset));
+        bulimerr.insertData((int) unlimError);
 //        bdrop.insertData(0);
     }
 
     @Override
-    public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
+    public void timeSyncPong(int delay, int dtt, int dtr, int dts, long tsNoWrap) {
         
     }
 

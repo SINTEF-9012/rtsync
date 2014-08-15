@@ -321,7 +321,7 @@ public class TimeSynchronizer implements Runnable {
 
     private boolean got_pong = false;
     private Object pongMonitor = "Thread synchronization monitor";
-    
+
     private void send_ping() {
         
         synchronized(pongMonitor) {
@@ -460,7 +460,7 @@ public class TimeSynchronizer implements Runnable {
             int dTmt = (int) (tmt - tmtPrev); // Time between the 2 last Pings
             int dTs = (int) (ts - tsPrev); // Time between last ts - Used by TsFilter
 
-            for (ITimeSynchronizerLogger l : loggers) l.timeSyncPong((int) (tmr - tmt), (int) dTmt, (int) dTmr, (int) dTs);
+            for (ITimeSynchronizerLogger l : loggers) l.timeSyncPong((int) (tmr - tmt), (int) dTmt, (int) dTmr, (int) dTs, ts);
 
             tmrPrev = tmr;
             tmtPrev = tmt;
@@ -509,6 +509,7 @@ public class TimeSynchronizer implements Runnable {
                 }
                 
             long error = offset - regOffset - scatterOffs;
+            long unlimError = error;
             
             final int MAX_NORMAL = 0;
             final int MAX_DETECTED = 1;
@@ -560,7 +561,7 @@ public class TimeSynchronizer implements Runnable {
             }
 
             for (ITimeSynchronizerLogger l : loggers) {
-                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, error+scatterOffs, errorSum, zeroOffset, regOffset, ts_phase, ts_offset);
+                l.timeSyncLog(currentTimeStamp(), ts, tmt, tmr, delay, offset, error+scatterOffs, errorSum, zeroOffset, regOffset, ts_phase, ts_offset, unlimError);
             }
 
             if (errorMaxDetected == MAX_DETECTED) {
@@ -663,14 +664,30 @@ public class TimeSynchronizer implements Runnable {
         }
     }
 
+    
+    
+    private long ppmMeasNextTime = 0;
+    private long ppmMeasLastRegOffset = 0;
+    
     @Override
     public void run() {
         running = true;
+        ppmMeasNextTime = System.currentTimeMillis() + (10*1000);
+        ppmMeasLastRegOffset = 0;
         try {
             do {
                 // initiate a ping every "period" milliseconds
                 send_ping();
                 Thread.sleep(pingRate);
+                
+                if ( ppmMeasNextTime < System.currentTimeMillis()) {
+                    ppmMeasNextTime = System.currentTimeMillis() + (100*1000);
+                    if ( ppmMeasLastRegOffset != 0) {
+                        ppmMeasLastRegOffset = regOffset - ppmMeasLastRegOffset;
+                        System.out.println("Clock deviation is " + ppmMeasLastRegOffset*10 + " PPM");
+                    }
+                    ppmMeasLastRegOffset = regOffset;
+                }
             } while (!stop_request);
         } catch (InterruptedException ex) {
             Logger.getLogger(TimeSynchronizer.class.getName()).log(Level.SEVERE, null, ex);

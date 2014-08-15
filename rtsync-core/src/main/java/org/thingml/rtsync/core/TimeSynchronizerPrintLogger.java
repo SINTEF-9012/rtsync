@@ -24,8 +24,8 @@ public class TimeSynchronizerPrintLogger implements ITimeSynchronizerLogger {
     private String SEPARATOR = "\t";
     
     @Override
-    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset) {
-        System.out.println("TimeSync:" + time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + error + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped + SEPARATOR + tsOffset);
+    public void timeSyncLog(String time, long ts, long tmt, long tmr, long delay, long offs, long error, long errorSum, long zeroOffset, long regOffsMs, int skipped, long tsOffset, long unlimError) {
+        System.out.println("TimeSync:" + time + SEPARATOR + ts + SEPARATOR + tmt + SEPARATOR + tmr + SEPARATOR + delay + SEPARATOR + offs + SEPARATOR + error + SEPARATOR + errorSum + SEPARATOR + zeroOffset + SEPARATOR + regOffsMs + SEPARATOR + skipped + SEPARATOR + tsOffset + SEPARATOR + unlimError);
     }
 
     @Override
@@ -39,8 +39,8 @@ public class TimeSynchronizerPrintLogger implements ITimeSynchronizerLogger {
     }
 
     @Override
-    public void timeSyncPong(int delay, int dtt, int dtr, int dts) {
-        System.out.println("TimeSync: PONG delay=" + delay + SEPARATOR + dtt + SEPARATOR + dtr + SEPARATOR + dts);
+    public void timeSyncPong(int delay, int dtt, int dtr, int dts, long tsNoWrap) {
+        System.out.println("TimeSync: PONG delay=" + delay + SEPARATOR + dtt + SEPARATOR + dtr + SEPARATOR + dts + SEPARATOR + tsNoWrap);
     }
     
     @Override
