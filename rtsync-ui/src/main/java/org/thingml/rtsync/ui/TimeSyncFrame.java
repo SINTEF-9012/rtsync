@@ -491,12 +491,14 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
     private void jButtonPingChartsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonPingChartsActionPerformed
         TimeSyncPingFrame timeframe = new TimeSyncPingFrame(ts);
         timeframe.setSize(400, 500);
+        timeframe.setLocationRelativeTo(this);
         timeframe.setVisible(true);
     }//GEN-LAST:event_jButtonPingChartsActionPerformed
 
     private void jButtonErrorChartsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonErrorChartsActionPerformed
         TimeSyncDelayErrorFrame errframe = new TimeSyncDelayErrorFrame(ts);
         errframe.setSize(400, 600);
+        errframe.setLocationRelativeTo(this);
         errframe.setVisible(true);
     }//GEN-LAST:event_jButtonErrorChartsActionPerformed
 
@@ -532,6 +534,7 @@ public class TimeSyncFrame extends javax.swing.JFrame implements ITimeSynchroniz
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         TimeSyncErrorsFrame errframe = new TimeSyncErrorsFrame(ts);
         errframe.setSize(400, 500);
+        errframe.setLocationRelativeTo(this);
         errframe.setVisible(true);
     }//GEN-LAST:event_jButton1ActionPerformed
 
